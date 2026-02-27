@@ -1,0 +1,87 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.github.NakumSiddharaj",
+    "module": "apptrack-android-sdk",
+    "version": "1.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.5"
+    }
+  },
+  "variants": [
+    {
+      "name": "releaseVariantReleaseApiPublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "apptrack-android-sdk-1.0.0.aar",
+          "url": "apptrack-android-sdk-1.0.0.aar",
+          "size": 16060,
+          "sha512": "beeebaefc42dcfcf59a3bbb2819f8cb6dbf4b3fd6696beaa9d399c007cb176530be1288f9fcaefef254660bfb91cf2b12fa3f133474ef0c2d9541b8072177117",
+          "sha256": "ca9e7e8a21b3a65cdc7404bbf82116de2d390882d71c6a60c990276a701af2ef",
+          "sha1": "46b14f779452135f6844107b29af0320d3c43651",
+          "md5": "c72bf60388ad987adca6fafc814ff860"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseRuntimePublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "com.android.installreferrer",
+          "module": "installreferrer",
+          "version": {
+            "requires": "2.2"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "apptrack-android-sdk-1.0.0.aar",
+          "url": "apptrack-android-sdk-1.0.0.aar",
+          "size": 16060,
+          "sha512": "beeebaefc42dcfcf59a3bbb2819f8cb6dbf4b3fd6696beaa9d399c007cb176530be1288f9fcaefef254660bfb91cf2b12fa3f133474ef0c2d9541b8072177117",
+          "sha256": "ca9e7e8a21b3a65cdc7404bbf82116de2d390882d71c6a60c990276a701af2ef",
+          "sha1": "46b14f779452135f6844107b29af0320d3c43651",
+          "md5": "c72bf60388ad987adca6fafc814ff860"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseSourcePublication",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "apptrack-android-sdk-1.0.0-sources.jar",
+          "url": "apptrack-android-sdk-1.0.0-sources.jar",
+          "size": 7892,
+          "sha512": "6b14e58ac8b591ed82ebceb483f8f504bf3fe4658dc3f5731b1f58b9b293590e173c7c6939d3de422443bbf4a3fc4e69b12119e50202a6030600670f33597d14",
+          "sha256": "1573b32605f555c9311d5782223ad176c3f0b41b59743621ecb8273dfd313194",
+          "sha1": "f6a12dc1cde569f6512413186bc9df1c78a5c5c8",
+          "md5": "a652d475d63972602c44026bcf2cca45"
+        }
+      ]
+    }
+  ]
+}

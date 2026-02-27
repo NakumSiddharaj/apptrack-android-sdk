@@ -1,0 +1,18 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.apptrack.sdk" >
+4
+5    <uses-sdk android:minSdkVersion="21" />
+6
+7    <!-- Required permissions -->
+8    <uses-permission android:name="android.permission.INTERNET" />
+8-->C:\Users\siddh\OneDrive\Desktop\sdk\apptrack-android-sdk-main\sdk\src\main\AndroidManifest.xml:5:5-67
+8-->C:\Users\siddh\OneDrive\Desktop\sdk\apptrack-android-sdk-main\sdk\src\main\AndroidManifest.xml:5:22-64
+9    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+9-->C:\Users\siddh\OneDrive\Desktop\sdk\apptrack-android-sdk-main\sdk\src\main\AndroidManifest.xml:6:5-79
+9-->C:\Users\siddh\OneDrive\Desktop\sdk\apptrack-android-sdk-main\sdk\src\main\AndroidManifest.xml:6:22-76
+10    <uses-permission android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE" />
+10-->C:\Users\siddh\OneDrive\Desktop\sdk\apptrack-android-sdk-main\sdk\src\main\AndroidManifest.xml:7:5-110
+10-->C:\Users\siddh\OneDrive\Desktop\sdk\apptrack-android-sdk-main\sdk\src\main\AndroidManifest.xml:7:22-107
+11
+12</manifest>
