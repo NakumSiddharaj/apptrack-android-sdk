@@ -124,19 +124,40 @@ public class DeviceInfo {
 
     private static void readSensorValues(SensorManager sm) {
         try {
-            // Read accelerometer
             Sensor accel = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             if (accel != null) {
                 sm.registerListener(new SensorEventListener() {
                     @Override
                     public void onSensorChanged(SensorEvent event) {
                         lastAccelerometer = event.values.clone();
-                        ((SensorManager) event.sensor.getClass()
-                            .getDeclaredMethod("getSystemService")
-                            .invoke(null)).unregisterListener(this);
+                        sm.unregisterListener(this);
                     }
                     @Override public void onAccuracyChanged(Sensor s, int a) {}
                 }, accel, SensorManager.SENSOR_DELAY_FASTEST);
+            }
+
+            Sensor gyro = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+            if (gyro != null) {
+                sm.registerListener(new SensorEventListener() {
+                    @Override
+                    public void onSensorChanged(SensorEvent event) {
+                        lastGyroscope = event.values.clone();
+                        sm.unregisterListener(this);
+                    }
+                    @Override public void onAccuracyChanged(Sensor s, int a) {}
+                }, gyro, SensorManager.SENSOR_DELAY_FASTEST);
+            }
+
+            Sensor mag = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+            if (mag != null) {
+                sm.registerListener(new SensorEventListener() {
+                    @Override
+                    public void onSensorChanged(SensorEvent event) {
+                        lastMagnetic = event.values.clone();
+                        sm.unregisterListener(this);
+                    }
+                    @Override public void onAccuracyChanged(Sensor s, int a) {}
+                }, mag, SensorManager.SENSOR_DELAY_FASTEST);
             }
         } catch (Exception e) {
             // Silent — sensor read is best-effort
