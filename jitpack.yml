@@ -1,8 +1,2 @@
-install:
-  - sdk: "24"
-
-before_install:
-  - source "$HOME/.sdkman/bin/sdkman-init.sh"
-
 jdk:
   - openjdk11
