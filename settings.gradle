@@ -1,0 +1,2 @@
+rootProject.name = "apptrack-android-sdk"
+include ':sdk'
