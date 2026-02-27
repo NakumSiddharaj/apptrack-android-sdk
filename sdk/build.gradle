@@ -30,7 +30,7 @@ afterEvaluate {
                 from components.release
                 groupId    = 'com.github.NakumSiddharaj'
                 artifactId = 'apptrack-android-sdk'
-                version    = '1.0.2'
+                version    = '1.0.0'
             }
         }
     }
