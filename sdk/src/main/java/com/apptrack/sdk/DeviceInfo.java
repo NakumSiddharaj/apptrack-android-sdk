@@ -20,6 +20,7 @@ import android.view.WindowManager;
 
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,7 +53,6 @@ public class DeviceInfo {
             String id = (String) getId.invoke(adInfo);
             boolean limited = (boolean) isLimitAd.invoke(adInfo);
             cachedGaid = id;
-            // Return even if limited — server will handle
             return id;
         } catch (Exception e) { }
         return null;
@@ -80,11 +80,11 @@ public class DeviceInfo {
             Method getAppSetId = client.getClass().getMethod("getAppSetId");
             Object task = getAppSetId.invoke(client);
 
-            // Block with timeout
             CountDownLatch latch = new CountDownLatch(1);
             final String[] result = {null};
 
-            Class<?> onSuccessClass = Class.forName("com.google.android.gms.tasks.OnSuccessListener");
+            Class<?> onSuccessClass = Class.forName(
+                "com.google.android.gms.tasks.OnSuccessListener");
             java.lang.reflect.Proxy.newProxyInstance(
                 onSuccessClass.getClassLoader(),
                 new Class[]{onSuccessClass},
@@ -126,6 +126,34 @@ public class DeviceInfo {
         return stored;
     }
 
+    // ─── Device Checksum (cksm_v3) ───────────────────────────────────────
+    public static String getDeviceChecksum(Context context) {
+        try {
+            String raw = Build.BOARD       + "|" +
+                         Build.BOOTLOADER  + "|" +
+                         Build.BRAND       + "|" +
+                         Build.DEVICE      + "|" +
+                         Build.DISPLAY     + "|" +
+                         Build.FINGERPRINT + "|" +
+                         Build.HARDWARE    + "|" +
+                         Build.HOST        + "|" +
+                         Build.ID          + "|" +
+                         Build.MANUFACTURER+ "|" +
+                         Build.MODEL       + "|" +
+                         Build.PRODUCT     + "|" +
+                         Build.TAGS        + "|" +
+                         Build.TYPE        + "|" +
+                         Build.USER;
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] bytes = md.digest(raw.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 8; i++)
+                sb.append(String.format("%02x", bytes[i]));
+            return sb.toString();
+        } catch (Exception e) { }
+        return "";
+    }
+
     // ─── Battery Level ────────────────────────────────────────────────────
     public static float getBatteryLevel(Context context) {
         try {
@@ -145,12 +173,24 @@ public class DeviceInfo {
         try {
             StatFs stat = new StatFs(Environment.getDataDirectory().getPath());
             long blockSize = stat.getBlockSizeLong();
-            long total = stat.getBlockCountLong() * blockSize / (1024 * 1024); // MB
-            long free  = stat.getAvailableBlocksLong() * blockSize / (1024 * 1024); // MB
+            long total = stat.getBlockCountLong() * blockSize / (1024 * 1024);
+            long free  = stat.getAvailableBlocksLong() * blockSize / (1024 * 1024);
             disk.put("total_mb", total);
             disk.put("free_mb", free);
         } catch (Exception e) { }
         return disk;
+    }
+
+    // ─── Disk String (AppsFlyer format: "free/total") ────────────────────
+    public static String getDiskString() {
+        try {
+            StatFs stat = new StatFs(Environment.getDataDirectory().getPath());
+            long blockSize = stat.getBlockSizeLong();
+            long total = stat.getBlockCountLong() * blockSize / (1024 * 1024);
+            long free  = stat.getAvailableBlocksLong() * blockSize / (1024 * 1024);
+            return free + "/" + total;
+        } catch (Exception e) { }
+        return "";
     }
 
     // ─── Language ─────────────────────────────────────────────────────────
@@ -158,9 +198,10 @@ public class DeviceInfo {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 return context.getResources().getConfiguration()
-                    .getLocales().get(0).getLanguage();
+                    .getLocales().get(0).getDisplayLanguage();
             } else {
-                return context.getResources().getConfiguration().locale.getLanguage();
+                return context.getResources().getConfiguration()
+                    .locale.getDisplayLanguage();
             }
         } catch (Exception e) { }
         return "unknown";
@@ -196,7 +237,7 @@ public class DeviceInfo {
         return null;
     }
 
-    // ─── Open Referrer (which app opened this app) ────────────────────────
+    // ─── Open Referrer ────────────────────────────────────────────────────
     public static String getOpenReferrer(Context context) {
         try {
             android.app.ActivityManager am = (android.app.ActivityManager)
@@ -425,7 +466,6 @@ public class DeviceInfo {
                 screen.put("dpi",  dm.densityDpi);
                 screen.put("xdp",  String.valueOf(dm.xdpi));
                 screen.put("ydp",  String.valueOf(dm.ydpi));
-                // Screen size category
                 int size = context.getResources().getConfiguration().screenLayout
                     & android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK;
                 screen.put("size", String.valueOf(size));
