@@ -15,7 +15,7 @@ public class PlayIntegrity {
         void onResult(String token, String error);
     }
 
-    public static void getToken(Context context, String appPackageName, IntegrityCallback callback) {
+    public static void getToken(Context context, IntegrityCallback callback) {
         try {
             // com.google.android.play.core.integrity.IntegrityManagerFactory
             Class<?> factoryClass = Class.forName(
