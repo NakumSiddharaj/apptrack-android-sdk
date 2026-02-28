@@ -56,10 +56,10 @@ public class AppTrack {
                 .apply();
         }
 
-        int  counter      = prefs.getInt(KEY_COUNTER,    0) + 1;
-        int  iaCounter    = prefs.getInt(KEY_IA_COUNTER, 0) + 1;
-        long lastLaunch   = prefs.getLong(KEY_LAST_LAUNCH, 0);
-        long prevSession  = prefs.getLong(KEY_PREV_SESSION, 0);
+        int  counter       = prefs.getInt(KEY_COUNTER,    0) + 1;
+        int  iaCounter     = prefs.getInt(KEY_IA_COUNTER, 0) + 1;
+        long lastLaunch    = prefs.getLong(KEY_LAST_LAUNCH, 0);
+        long prevSession   = prefs.getLong(KEY_PREV_SESSION, 0);
         long timeSinceLast = lastLaunch > 0
             ? (System.currentTimeMillis() - lastLaunch) / 1000 : 0;
 
@@ -99,7 +99,7 @@ public class AppTrack {
         if (!initialized) { Log.w(TAG, "Not initialized!"); return; }
         if (data == null) data = new HashMap<>();
 
-        SharedPreferences prefs    = getPrefs(context);
+        SharedPreferences prefs = getPrefs(context);
         String uid        = getOrCreateUid(prefs);
         String deviceId   = DeviceInfo.getDeviceId(context);
         String clickid    = prefs.getString(KEY_CLICKID,    null);
@@ -173,6 +173,12 @@ public class AppTrack {
         payload.put("last_boot_time",
             System.currentTimeMillis() - SystemClock.elapsedRealtime());
 
+        // ── Device Checksum (cksm_v3) ─────────────────────────────────────
+        payload.put("cksm_v3",     DeviceInfo.getDeviceChecksum(context));  // NEW
+        payload.put("device_type", "user");                                  // NEW
+        payload.put("is_pc",       false);                                   // NEW
+        payload.put("btch",        "no");                                    // NEW
+
         // ── Battery ───────────────────────────────────────────────────────
         float battery = DeviceInfo.getBatteryLevel(context);
         if (battery >= 0) payload.put("battery_level", battery);
@@ -180,8 +186,9 @@ public class AppTrack {
         // ── Disk ──────────────────────────────────────────────────────────
         Map<String, Long> disk = DeviceInfo.getDiskInfo();
         if (!disk.isEmpty()) {
-            payload.put("disk_free",  disk.get("free_mb"));
-            payload.put("disk_total", disk.get("total_mb"));
+            payload.put("disk_free",   disk.get("free_mb"));
+            payload.put("disk_total",  disk.get("total_mb"));
+            payload.put("disk",        DeviceInfo.getDiskString());          // NEW AppsFlyer format
         }
 
         // ── Language ──────────────────────────────────────────────────────
@@ -237,11 +244,11 @@ public class AppTrack {
         String sigPayload = uid + ":" + deviceId + ":" + appId;
         payload.put("sig", DeviceInfo.computeHMAC(sigPayload, apiKey));
 
-        // ── Play Integrity — last step, send after token ──────────────────
-        final String finalUid      = uid;
-        final String finalClickid  = clickid;
-        final float  finalBattery  = battery;
-        final String finalCountry  = country;
+        // ── Play Integrity — last step ────────────────────────────────────
+        final String finalUid     = uid;
+        final String finalClickid = clickid;
+        final float  finalBattery = battery;
+        final String finalCountry = country;
 
         PlayIntegrity.getToken(context, (token, err) -> {
             if (token != null) {
@@ -250,10 +257,8 @@ public class AppTrack {
             } else {
                 Log.d(TAG, "Play Integrity unavailable: " + err);
             }
-
             EventQueue.enqueue(context, SERVER_URL + "/v1/install", apiKey, payload);
             prefs.edit().putBoolean(KEY_INSTALL_SENT, true).apply();
-
             Log.d(TAG, "Install sent | uid=" + finalUid
                 + " clickid=" + finalClickid
                 + " debug=" + isDebug
