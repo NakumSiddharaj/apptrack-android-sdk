@@ -17,33 +17,30 @@ import java.util.concurrent.Executors;
 
 public class EventQueue {
 
-    private static final String TAG = "AppTrack.Queue";
+    private static final String TAG         = "AppTrack.Queue";
     private static final String PREFS_QUEUE = "apptrack_queue";
-    private static final String KEY_QUEUE = "pending_events";
-    private static final int MAX_RETRY = 3;
-    private static final int TIMEOUT_MS = 10000;
+    private static final String KEY_QUEUE   = "pending_events";
+    private static final int    MAX_RETRY   = 3;
+    private static final int    TIMEOUT_MS  = 10000;
 
     private static final ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    // ─── Enqueue Event ────────────────────────────────────
-    public static void enqueue(Context context, String url, String apiKey, Map<String, Object> payload) {
-        // Save to persistent queue first (offline support)
+    // ─── Enqueue ──────────────────────────────────────────────────────────
+    public static void enqueue(Context context, String url, String apiKey,
+                                Map<String, Object> payload) {
         saveToQueue(context, url, apiKey, payload);
-        // Try to send immediately
         executor.execute(() -> flush(context));
     }
 
-    // ─── Flush Queue ──────────────────────────────────────
+    // ─── Flush Queue ──────────────────────────────────────────────────────
     public static void flush(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_QUEUE, Context.MODE_PRIVATE);
+        SharedPreferences prefs = context.getSharedPreferences(
+            PREFS_QUEUE, Context.MODE_PRIVATE);
         String raw = prefs.getString(KEY_QUEUE, "[]");
 
         JSONArray queue;
-        try {
-            queue = new JSONArray(raw);
-        } catch (Exception e) {
-            queue = new JSONArray();
-        }
+        try { queue = new JSONArray(raw); }
+        catch (Exception e) { queue = new JSONArray(); }
 
         if (queue.length() == 0) return;
 
@@ -51,11 +48,11 @@ public class EventQueue {
 
         for (int i = 0; i < queue.length(); i++) {
             try {
-                JSONObject item = queue.getJSONObject(i);
-                String itemUrl    = item.getString("url");
-                String itemApiKey = item.getString("api_key");
+                JSONObject item       = queue.getJSONObject(i);
+                String itemUrl        = item.getString("url");
+                String itemApiKey     = item.getString("api_key");
                 JSONObject itemPayload = item.getJSONObject("payload");
-                int retries = item.optInt("retries", 0);
+                int retries           = item.optInt("retries", 0);
 
                 boolean success = sendRequest(itemUrl, itemApiKey, itemPayload);
 
@@ -73,25 +70,43 @@ public class EventQueue {
             }
         }
 
-        // Save remaining
         prefs.edit().putString(KEY_QUEUE, remaining.toString()).apply();
     }
 
-    // ─── HTTP POST ────────────────────────────────────────
+    // ─── HTTP POST with AES-256 Encryption ───────────────────────────────
     private static boolean sendRequest(String urlStr, String apiKey, JSONObject payload) {
         HttpURLConnection conn = null;
         try {
             URL url = new URL(urlStr);
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
             conn.setRequestProperty("X-API-Key", apiKey);
-            conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("Accept",    "application/json");
             conn.setConnectTimeout(TIMEOUT_MS);
             conn.setReadTimeout(TIMEOUT_MS);
             conn.setDoOutput(true);
 
-            byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);
+            String jsonStr = payload.toString();
+
+            // Encrypt payload
+            String encrypted = PayloadEncryptor.encrypt(jsonStr, apiKey);
+
+            byte[] body;
+            if (encrypted != null) {
+                // Send encrypted wrapper
+                conn.setRequestProperty("Content-Type",       "application/json");
+                conn.setRequestProperty("X-Payload-Encrypted", "1");
+                JSONObject wrapper = new JSONObject();
+                wrapper.put("enc", encrypted);
+                body = wrapper.toString().getBytes(StandardCharsets.UTF_8);
+                Log.d(TAG, "Sending encrypted payload");
+            } else {
+                // Fallback — plain JSON (should not happen)
+                conn.setRequestProperty("Content-Type", "application/json");
+                body = jsonStr.getBytes(StandardCharsets.UTF_8);
+                Log.w(TAG, "Encryption failed, sending plain");
+            }
+
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(body);
             }
@@ -108,18 +123,20 @@ public class EventQueue {
         }
     }
 
-    // ─── Save to Queue ────────────────────────────────────
-    private static void saveToQueue(Context context, String url, String apiKey, Map<String, Object> payload) {
+    // ─── Save to Queue ────────────────────────────────────────────────────
+    private static void saveToQueue(Context context, String url, String apiKey,
+                                     Map<String, Object> payload) {
         try {
-            SharedPreferences prefs = context.getSharedPreferences(PREFS_QUEUE, Context.MODE_PRIVATE);
-            String raw = prefs.getString(KEY_QUEUE, "[]");
+            SharedPreferences prefs = context.getSharedPreferences(
+                PREFS_QUEUE, Context.MODE_PRIVATE);
+            String raw   = prefs.getString(KEY_QUEUE, "[]");
             JSONArray queue = new JSONArray(raw);
 
             JSONObject item = new JSONObject();
-            item.put("url",     url);
-            item.put("api_key", apiKey);
-            item.put("payload", mapToJson(payload));
-            item.put("retries", 0);
+            item.put("url",       url);
+            item.put("api_key",   apiKey);
+            item.put("payload",   mapToJson(payload));
+            item.put("retries",   0);
             item.put("queued_at", System.currentTimeMillis());
 
             queue.put(item);
@@ -130,7 +147,7 @@ public class EventQueue {
         }
     }
 
-    // ─── Map → JSONObject ─────────────────────────────────
+    // ─── Map → JSONObject ─────────────────────────────────────────────────
     @SuppressWarnings("unchecked")
     static JSONObject mapToJson(Map<String, Object> map) {
         JSONObject json = new JSONObject();
