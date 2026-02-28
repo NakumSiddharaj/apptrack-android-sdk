@@ -67,10 +67,3 @@ public class PayloadEncryptor {
         }
     }
 }
-```
-
-Ab **`EventQueue.java`** mein encrypt karo — request bhejne se pehle:
-
-Pehle dekho `EventQueue.java` ka current code kya hai — share karo ya path batao. Phir wahan encrypt logic add karenge taaki:
-```
-Plain JSON → AES-256 Encrypt → {"enc":"base64data"} → Server
