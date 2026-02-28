@@ -3,6 +3,8 @@ package com.apptrack.sdk;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.util.Log;
 
@@ -24,6 +26,7 @@ public class AppTrack {
     private static final String KEY_LAST_LAUNCH   = "at_last_launch";
     private static final String KEY_PREV_SESSION  = "at_prev_session";
     private static final String KEY_IA_COUNTER    = "at_ia_counter";
+    private static final String KEY_APP_VERSION   = "at_app_version";
 
     private static final String SERVER_URL = "https://track.apptrack.in";
 
@@ -56,6 +59,17 @@ public class AppTrack {
                 .apply();
         }
 
+        // ── Version change → reset install flag ──────────────────────────
+        String savedVer = prefs.getString(KEY_APP_VERSION, "");
+        String curVer   = DeviceInfo.getAppVersion(context);
+        if (!savedVer.equals(curVer)) {
+            prefs.edit()
+                .putBoolean(KEY_INSTALL_SENT, false)
+                .putString(KEY_APP_VERSION, curVer)
+                .apply();
+            Log.d(TAG, "Version changed " + savedVer + " → " + curVer + ", resetting install flag");
+        }
+
         int  counter       = prefs.getInt(KEY_COUNTER,    0) + 1;
         int  iaCounter     = prefs.getInt(KEY_IA_COUNTER, 0) + 1;
         long lastLaunch    = prefs.getLong(KEY_LAST_LAUNCH, 0);
@@ -76,7 +90,8 @@ public class AppTrack {
         final long finalPrevSession   = prevSession;
         final int  finalIaCounter     = iaCounter;
 
-        new Thread(() -> {
+        // ── Main thread pe referrer read karo ────────────────────────────
+        new Handler(Looper.getMainLooper()).post(() -> {
             ReferrerReceiver.readReferrer(context, (clickid, campaignId) -> {
                 if (clickid != null) {
                     prefs.edit()
@@ -85,12 +100,15 @@ public class AppTrack {
                         .apply();
                     Log.d(TAG, "Referrer parsed | clickid=" + clickid);
                 }
-                if (!prefs.getBoolean(KEY_INSTALL_SENT, false)) {
-                    sendInstall(context, finalTimeSinceLast,
-                        finalPrevSession, finalIaCounter);
-                }
+                // sendInstall background thread mein
+                new Thread(() -> {
+                    if (!prefs.getBoolean(KEY_INSTALL_SENT, false)) {
+                        sendInstall(context, finalTimeSinceLast,
+                            finalPrevSession, finalIaCounter);
+                    }
+                }).start();
             });
-        }).start();
+        });
     }
 
     // ─── Track Event ──────────────────────────────────────────────────────
@@ -107,15 +125,15 @@ public class AppTrack {
         String eventUuid  = UUID.randomUUID().toString();
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("app_id",     appId);
-        payload.put("uid",        uid);
-        payload.put("device_id",  deviceId);
-        payload.put("event_name", eventName);
-        payload.put("event_uuid", eventUuid);
-        payload.put("data",       data);
-        payload.put("is_debug",   isDebug);
-        payload.put("sdk_version",  Build.VERSION.SDK_INT);        // NEW
-        payload.put("timestamp",    System.currentTimeMillis());    // NEW
+        payload.put("app_id",      appId);
+        payload.put("uid",         uid);
+        payload.put("device_id",   deviceId);
+        payload.put("event_name",  eventName);
+        payload.put("event_uuid",  eventUuid);
+        payload.put("data",        data);
+        payload.put("is_debug",    isDebug);
+        payload.put("sdk_version", Build.VERSION.SDK_INT);
+        payload.put("timestamp",   System.currentTimeMillis());
 
         if (clickid    != null) payload.put("clickid",     clickid);
         if (campaignId != null && !campaignId.isEmpty())
@@ -154,9 +172,9 @@ public class AppTrack {
         payload.put("first_launch_date", prefs.getString(KEY_FIRST_LAUNCH, ""));
         payload.put("counter",           prefs.getInt(KEY_COUNTER, 1));
         payload.put("is_debug",          isDebug);
-        payload.put("sdk_version",       Build.VERSION.SDK_INT);                    // NEW
-        payload.put("timestamp",         System.currentTimeMillis());               // NEW
-        payload.put("is_first_call",     prefs.getInt(KEY_COUNTER, 1) == 1);       // NEW
+        payload.put("sdk_version",       Build.VERSION.SDK_INT);
+        payload.put("timestamp",         System.currentTimeMillis());
+        payload.put("is_first_call",     prefs.getInt(KEY_COUNTER, 1) == 1);
 
         if (clickid    != null) payload.put("clickid",     clickid);
         if (campaignId != null && !campaignId.isEmpty())
@@ -178,7 +196,7 @@ public class AppTrack {
         payload.put("last_boot_time",
             System.currentTimeMillis() - SystemClock.elapsedRealtime());
 
-        // ── Device Checksum (cksm_v3) ─────────────────────────────────────
+        // ── Device Checksum ───────────────────────────────────────────────
         payload.put("cksm_v3",     DeviceInfo.getDeviceChecksum(context));
         payload.put("device_type", "user");
         payload.put("is_pc",       false);
@@ -249,7 +267,7 @@ public class AppTrack {
         String sigPayload = uid + ":" + deviceId + ":" + appId;
         payload.put("sig", DeviceInfo.computeHMAC(sigPayload, apiKey));
 
-        // ── Play Integrity — last step ────────────────────────────────────
+        // ── Play Integrity ────────────────────────────────────────────────
         final String finalUid     = uid;
         final String finalClickid = clickid;
         final float  finalBattery = battery;
