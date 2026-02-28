@@ -114,6 +114,8 @@ public class AppTrack {
         payload.put("event_uuid", eventUuid);
         payload.put("data",       data);
         payload.put("is_debug",   isDebug);
+        payload.put("sdk_version",  Build.VERSION.SDK_INT);        // NEW
+        payload.put("timestamp",    System.currentTimeMillis());    // NEW
 
         if (clickid    != null) payload.put("clickid",     clickid);
         if (campaignId != null && !campaignId.isEmpty())
@@ -152,6 +154,9 @@ public class AppTrack {
         payload.put("first_launch_date", prefs.getString(KEY_FIRST_LAUNCH, ""));
         payload.put("counter",           prefs.getInt(KEY_COUNTER, 1));
         payload.put("is_debug",          isDebug);
+        payload.put("sdk_version",       Build.VERSION.SDK_INT);                    // NEW
+        payload.put("timestamp",         System.currentTimeMillis());               // NEW
+        payload.put("is_first_call",     prefs.getInt(KEY_COUNTER, 1) == 1);       // NEW
 
         if (clickid    != null) payload.put("clickid",     clickid);
         if (campaignId != null && !campaignId.isEmpty())
@@ -174,10 +179,10 @@ public class AppTrack {
             System.currentTimeMillis() - SystemClock.elapsedRealtime());
 
         // ── Device Checksum (cksm_v3) ─────────────────────────────────────
-        payload.put("cksm_v3",     DeviceInfo.getDeviceChecksum(context));  // NEW
-        payload.put("device_type", "user");                                  // NEW
-        payload.put("is_pc",       false);                                   // NEW
-        payload.put("btch",        "no");                                    // NEW
+        payload.put("cksm_v3",     DeviceInfo.getDeviceChecksum(context));
+        payload.put("device_type", "user");
+        payload.put("is_pc",       false);
+        payload.put("btch",        "no");
 
         // ── Battery ───────────────────────────────────────────────────────
         float battery = DeviceInfo.getBatteryLevel(context);
@@ -186,9 +191,9 @@ public class AppTrack {
         // ── Disk ──────────────────────────────────────────────────────────
         Map<String, Long> disk = DeviceInfo.getDiskInfo();
         if (!disk.isEmpty()) {
-            payload.put("disk_free",   disk.get("free_mb"));
-            payload.put("disk_total",  disk.get("total_mb"));
-            payload.put("disk",        DeviceInfo.getDiskString());          // NEW AppsFlyer format
+            payload.put("disk_free",  disk.get("free_mb"));
+            payload.put("disk_total", disk.get("total_mb"));
+            payload.put("disk",       DeviceInfo.getDiskString());
         }
 
         // ── Language ──────────────────────────────────────────────────────
